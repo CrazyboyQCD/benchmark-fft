@@ -16,6 +16,7 @@ A multi-language FFT (Fast Fourier Transform) performance benchmark comparing Ru
 This project has been tested on the following environments:
 - Python 3.13.7
 - Rust 1.89.0
+- Zig 0.16.0-dev.164+bc7955306
 - MoonBit v0.6.25
 - Swift 6.0
 - go 1.22

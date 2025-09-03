@@ -36,12 +36,14 @@ from bench_plot import save_average_line_chart
 
 TIME_RE = re.compile(r"execution time:\s*([0-9]+(?:\.[0-9]+)?)\s*ms", re.IGNORECASE)
 
+
 @dataclass
 class Program:
     name: str
     workdir: Path
     build_cmd: List[str]
     exe_path: Path
+
 
 @dataclass
 class BenchResult:
@@ -60,14 +62,14 @@ class BenchResult:
             "average": stats.mean(self.times_ms),
         }
 
+
 def run_cmd(cmd: List[str], cwd: Optional[Path] = None, verbose: bool = False) -> subprocess.CompletedProcess:
     workdir = str(cwd) if cwd else None
     if verbose:
         prefix = f"[CMD in {workdir}] " if workdir else "[CMD] "
         print(prefix + " ".join(map(str, cmd)), file=sys.stderr)
-    return subprocess.run(
-        cmd, cwd=workdir, capture_output=True, text=True, check=False
-    )
+    return subprocess.run(cmd, cwd=workdir, capture_output=True, text=True, check=False)
+
 
 def ensure_built(program: Program, verbose: bool) -> None:
     proc = run_cmd(program.build_cmd, cwd=program.workdir, verbose=verbose)
@@ -78,11 +80,13 @@ def ensure_built(program: Program, verbose: bool) -> None:
         print(proc.stderr, file=sys.stderr)
         sys.exit(1)
 
+
 def parse_time_ms(output: str) -> Optional[float]:
     matches = TIME_RE.findall(output)
     if not matches:
         return None
     return float(matches[-1])
+
 
 def run_once(program: Program, input_value: int, verbose: bool, extra_arg: Optional[str] = None) -> float:
     cmd = [str(program.exe_path), str(input_value)]
@@ -96,15 +100,20 @@ def run_once(program: Program, input_value: int, verbose: bool, extra_arg: Optio
         sys.exit(2)
     t = parse_time_ms(proc.stdout + "\n" + proc.stderr)
     if t is None:
-        print(f"[ERROR] Could not parse execution time from output for {program.name} input={input_value}", file=sys.stderr)
+        print(
+            f"[ERROR] Could not parse execution time from output for {program.name} input={input_value}",
+            file=sys.stderr,
+        )
         print("Output:")
         print(proc.stdout)
         print(proc.stderr, file=sys.stderr)
         sys.exit(3)
     return t
 
+
 def format_ms(x: float) -> str:
     return f"{x:8.3f} ms"
+
 
 def print_table(results: List[BenchResult]) -> None:
     print()
@@ -123,14 +132,17 @@ def print_table(results: List[BenchResult]) -> None:
         # Insert separator when input size changes
         if last_input is not None and r.input_value != last_input:
             print("-" * len(header))
-        line = f"{r.program:20} {r.input_value:7d} {s['runs']:6d} " \
-               f"{format_ms(s['min']):>12} {format_ms(s['max']):>12} " \
-               f"{format_ms(s['median']):>12} {format_ms(s['average']):>12}"
+        line = (
+            f"{r.program:20} {r.input_value:7d} {s['runs']:6d} "
+            f"{format_ms(s['min']):>12} {format_ms(s['max']):>12} "
+            f"{format_ms(s['median']):>12} {format_ms(s['average']):>12}"
+        )
         print(line)
         last_input = r.input_value
 
     print("=" * 90)
     print()
+
 
 def verify_pair(mbt: Program, rust: Program, input_value: int, out_dir: Path, verbose: bool, per_run: bool = False):
     """
@@ -159,17 +171,20 @@ def verify_pair(mbt: Program, rust: Program, input_value: int, out_dir: Path, ve
             sys.exit(11)
 
     if per_run:
-        return lambda idx: verify_once(tag=f"(run #{idx+1})")
+        return lambda idx: verify_once(tag=f"(run #{idx + 1})")
     else:
         verify_once()
         return None
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-build", action="store_true", help="Skip building the programs")
     parser.add_argument("--runs", type=int, default=10, help="Number of runs per input")
     parser.add_argument("--inputs", nargs="*", type=int, default=[18, 20, 22], help="Input sizes (log2 N)")
-    parser.add_argument("--verify", action="store_true", help="Enable MBT->file then Rust->verify step (disabled by default)")
+    parser.add_argument(
+        "--verify", action="store_true", help="Enable MBT->file then Rust->verify step (disabled by default)"
+    )
     parser.add_argument("--verify-per-run", action="store_true", help="Verify on every Rust timing run")
     parser.add_argument("--verify-dir", type=str, default=".verify_out", help="Directory for verification files")
     parser.add_argument("--verbose", action="store_true", help="Log every executed command")
@@ -182,6 +197,12 @@ def main():
         workdir=repo_root / "fft" / "rs",
         build_cmd=["cargo", "build", "--release"],
         exe_path=Path("target") / "release" / "main",
+    )
+    zig = Program(
+        name="zig",
+        workdir=repo_root / "fft" / "zig",
+        build_cmd=["zig", "build", "--release=fast"],
+        exe_path=Path("zig-out") / "bin" / "main",
     )
     mbt = Program(
         name="moonbit",
@@ -202,7 +223,7 @@ def main():
         exe_path=Path("bin") / "main",
     )
 
-    programs = [rust, mbt, swift, go]  # build & run order
+    programs = [rust, zig, mbt, swift, go]  # build & run order
 
     # Build
     if not args.no_build:
@@ -215,7 +236,9 @@ def main():
     for n in args.inputs:
         if args.verify:
             print(f"[VERIFY] input={n}")
-            verifier = verify_pair(mbt, rust, n, repo_root / args.verify_dir, verbose=args.verbose, per_run=args.verify_per_run)
+            verifier = verify_pair(
+                mbt, rust, n, repo_root / args.verify_dir, verbose=args.verbose, per_run=args.verify_per_run
+            )
         else:
             verifier = None
 
@@ -232,6 +255,7 @@ def main():
 
     print_table(results)
     save_average_line_chart(results, filename="bench_avg.png")
+
 
 if __name__ == "__main__":
     main()
