@@ -1,5 +1,7 @@
 use std::f64::consts::PI;
 
+use bumpalo::{Bump, collections::Vec};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Complex {
     pub real: f64,
@@ -56,23 +58,23 @@ impl std::ops::Mul<f64> for Complex {
     }
 }
 
-pub fn fft(arr: &mut [Complex]) {
-    fn _fft(arr: &mut [Complex]) {
+pub fn fft(arr: &mut [Complex], bump: &Bump) {
+    fn _fft(arr: &mut [Complex], bump: &Bump) {
         let n = arr.len();
         if n == 1 {
             return;
         }
 
-        let mut a0 = Vec::with_capacity(n / 2);
-        let mut a1 = Vec::with_capacity(n / 2);
+        let mut a0 = Vec::with_capacity_in(n / 2, bump);
+        let mut a1 = Vec::with_capacity_in(n / 2, bump);
 
         for i in 0..n / 2 {
             a0.push(arr[2 * i]);
             a1.push(arr[2 * i + 1]);
         }
 
-        _fft(&mut a0);
-        _fft(&mut a1);
+        _fft(&mut a0, bump);
+        _fft(&mut a1, bump);
 
         let ang = -2.0 * PI / n as f64;
         let mut w = Complex::new(1.0, 0.0);
@@ -87,7 +89,7 @@ pub fn fft(arr: &mut [Complex]) {
         }
     }
 
-    _fft(arr);
+    _fft(arr, bump);
     let factor = 1.0 / (arr.len() as f64).sqrt();
     for it in arr {
         *it = *it * factor;

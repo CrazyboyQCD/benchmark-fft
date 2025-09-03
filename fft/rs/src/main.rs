@@ -1,5 +1,7 @@
-use fft::{fft, Complex};
+use fft::{Complex, fft};
 use std::f64::consts::PI;
+
+use bumpalo::Bump;
 
 fn round(n: f64) -> f64 {
     // precision = 2
@@ -21,9 +23,10 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let size = args[1].parse::<usize>().unwrap();
     let mut signals = generate_inputs(1 << size);
-    let start = std::time::Instant::now();
-    fft(&mut signals);
-    let end = std::time::Instant::now();
+    let timer = std::time::Instant::now();
+    let bump = Bump::new();
+    fft(&mut signals, &bump);
+    let elapsed = timer.elapsed();
 
     if args.len() > 2 {
         let content = std::fs::read_to_string(args[2].clone()).unwrap();
@@ -41,9 +44,6 @@ fn main() {
             assert_eq!(signal, &expected);
         }
     } else {
-        println!(
-            "execution time: {:.3} ms",
-            end.duration_since(start).as_secs_f64() * 1000.0
-        );
+        println!("execution time: {:.3} ms", elapsed.as_secs_f64() * 1000.0);
     }
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bumpalo = { version = "3.19", features = ["collections"] }
 
 [lib]
 name = "fft"
@@ -11,4 +12,4 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "main"
-path = "src/main.rs" 
+path = "src/main.rs"
